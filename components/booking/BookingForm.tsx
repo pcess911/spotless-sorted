@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import BookingDatePicker from "./DatePicker";
 import TimePicker from "./TimePicker";
 import TimezoneSelect from "./TimezoneSelect";
 import { BookingSchema, BookingInput } from "../../lib/utils";
 import { z } from "zod";
+import { createBrowserSupabaseClient } from "../../lib/supabaseClient";
 
 export type ServiceOption = {
   id: string;
@@ -16,10 +17,13 @@ export type ServiceOption = {
 };
 
 type Props = {
-  services: ServiceOption[];
+  services?: ServiceOption[]; // optional — will fetch client-side if not provided
 };
 
-export default function BookingForm({ services }: Props) {
+export default function BookingForm({ services: initialServices }: Props) {
+  const [services, setServices] = useState<ServiceOption[]>(initialServices ?? []);
+  const [loadingServices, setLoadingServices] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [successRef, setSuccessRef] = useState<string | null>(null);
   const [whatsappAvailable, setWhatsappAvailable] = useState<boolean | null>(null);
@@ -38,6 +42,35 @@ export default function BookingForm({ services }: Props) {
     address: "",
     notes: undefined,
   });
+
+  useEffect(() => {
+    if (!initialServices || initialServices.length === 0) {
+      // fetch active services using the client (anon) key
+      setLoadingServices(true);
+      try {
+        const supabase = createBrowserSupabaseClient();
+        supabase
+          .from("services")
+          .select("id, name, price, requires_address, active")
+          .eq("active", true)
+          .order("name", { ascending: true })
+          .then(({ data, error }) => {
+            if (error) {
+              console.error("Failed to load services (client):", error);
+              setServices([]);
+            } else if (Array.isArray(data)) {
+              setServices(data as ServiceOption[]);
+              // if no service selected yet, pick first
+              setForm((s) => ({ ...s, serviceId: (data[0] as any)?.id ?? s.serviceId }));
+            }
+          })
+          .finally(() => setLoadingServices(false));
+      } catch (err) {
+        console.error("Client supabase error loading services:", err);
+        setLoadingServices(false);
+      }
+    }
+  }, [initialServices]);
 
   const selectedService = services.find((s) => s.id === form.serviceId);
   const addressRequired = !!selectedService?.requires_address;
@@ -139,6 +172,7 @@ export default function BookingForm({ services }: Props) {
           Service
         </label>
         <select id="service" name="service" value={form.serviceId} onChange={(e) => update("serviceId", e.target.value)} className="w-full rounded-md border px-3 py-2">
+          {loadingServices ? <option>Loading services…</option> : null}
           {services.map((s) => (
             <option key={s.id} value={s.id}>
               {s.name} {s.price ? `— ${s.price}` : "— Request a Quote"}

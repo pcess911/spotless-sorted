@@ -1,0 +1,47 @@
+{
+  "name": "spotless-sorted",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Spotless & Sorted - Cleaning and Personal Shopping services website",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "typecheck": "tsc --noEmit",
+    "sitemap": "next-sitemap"
+  },
+  "dependencies": {
+    "next": "15.0.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "typescript": "^5.1.6",
+    "tailwindcss": "^4.0.0",
+    "postcss": "^8.4.24",
+    "autoprefixer": "^10.4.14",
+    "@supabase/supabase-js": "^2.24.0",
+    "nodemailer": "^6.9.4",
+    "date-fns": "^2.30.0",
+    "clsx": "^1.2.1",
+    "zod": "^3.23.2",
+    "swr": "^2.2.0",
+    "next-themes": "^0.2.0",
+    "gray-matter": "^4.0.3",
+    "next-mdx-remote": "^4.2.0",
+    "react-datepicker": "^4.10.0",
+    "react-timezone-select": "^1.0.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.6.0",
+    "@types/react": "^18.2.25",
+    "@types/react-dom": "^18.2.7",
+    "@types/uuid": "^9.0.2",
+    "eslint": "^8.54.0",
+    "eslint-config-next": "^15.0.0",
+    "prettier": "^2.8.8",
+    "@types/react-datepicker": "^4.8.0",
+    "tailwindcss-fluid-type": "^2.0.2"
+  }
+}

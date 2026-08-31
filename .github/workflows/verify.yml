@@ -1,0 +1,71 @@
+name: Verify
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify (typecheck & build)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Run checks (npm ci, tsc, build)
+        shell: bash
+        run: |
+          #!/usr/bin/env bash
+          set -u
+          # Run commands and capture exit codes; do not exit on error so we can always upload logs
+          npm ci 2>&1 | tee npm-install.log
+          echo ${PIPESTATUS[0]} > npm_exit
+
+          npx tsc --noEmit 2>&1 | tee tsc.log
+          echo ${PIPESTATUS[0]} > tsc_exit
+
+          npm run build 2>&1 | tee build.log
+          echo ${PIPESTATUS[0]} > build_exit
+
+          echo "npm_exit=$(cat npm_exit) tsc_exit=$(cat tsc_exit) build_exit=$(cat build_exit)"
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-logs
+          path: |
+            npm-install.log
+            tsc.log
+            build.log
+            npm_exit
+            tsc_exit
+            build_exit
+
+      - name: Fail if typecheck or build failed
+        if: always()
+        shell: bash
+        run: |
+          tsc_code=$(cat tsc_exit)
+          build_code=$(cat build_exit)
+          echo "tsc_exit=${tsc_code} build_exit=${build_code}"
+          if [ "${tsc_code}" != "0" ]; then
+            echo "TypeScript typecheck failed with exit code ${tsc_code}"
+            exit ${tsc_code}
+          fi
+          if [ "${build_code}" != "0" ]; then
+            echo "Production build failed with exit code ${build_code}"
+            exit ${build_code}
+          fi
+          echo "Both typecheck and build succeeded"

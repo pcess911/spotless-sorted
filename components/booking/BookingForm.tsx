@@ -46,32 +46,31 @@ export default function BookingForm({ services: initialServices }: Props) {
   useEffect(() => {
     if (!initialServices || initialServices.length === 0) {
       // fetch active services using the client (anon) key
+      const fetchServices = async () => {
+        try {
+          const supabase = createBrowserSupabaseClient();
+          const { data, error } = await supabase
+            .from("services")
+            .select("id, name, price, requires_address, active")
+            .eq("active", true)
+            .order("name", { ascending: true });
+
+          if (error) {
+            console.error("Failed to load services (client):", error);
+            setServices([]);
+          } else if (Array.isArray(data)) {
+            setServices(data as ServiceOption[]);
+            // if no service selected yet, pick first
+            setForm((s) => ({ ...s, serviceId: (data[0] as any)?.id ?? s.serviceId }));
+          }
+        } catch (err: unknown) {
+          console.error("Client supabase error loading services:", err);
+        } finally {
+          setLoadingServices(false);
+        }
+      };
       setLoadingServices(true);
-      try {
-        const supabase = createBrowserSupabaseClient();
-        supabase
-          .from("services")
-          .select("id, name, price, requires_address, active")
-          .eq("active", true)
-          .order("name", { ascending: true })
-          .then(({ data, error }) => {
-            if (error) {
-              console.error("Failed to load services (client):", error);
-              setServices([]);
-            } else if (Array.isArray(data)) {
-              setServices(data as ServiceOption[]);
-              // if no service selected yet, pick first
-              setForm((s) => ({ ...s, serviceId: (data[0] as any)?.id ?? s.serviceId }));
-            }
-          })
-          .catch((err) => {
-            console.error("Client supabase error loading services:", err);
-          })
-          .then(() => setLoadingServices(false));
-      } catch (err) {
-        console.error("Client supabase error loading services:", err);
-        setLoadingServices(false);
-      }
+      fetchServices();
     }
   }, [initialServices]);
 

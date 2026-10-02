@@ -64,7 +64,10 @@ export default function BookingForm({ services: initialServices }: Props) {
               setForm((s) => ({ ...s, serviceId: (data[0] as any)?.id ?? s.serviceId }));
             }
           })
-          .finally(() => setLoadingServices(false));
+          .catch((err) => {
+            console.error("Client supabase error loading services:", err);
+          })
+          .then(() => setLoadingServices(false));
       } catch (err) {
         console.error("Client supabase error loading services:", err);
         setLoadingServices(false);

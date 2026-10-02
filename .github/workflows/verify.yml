@@ -1,5 +1,3 @@
-
-```yaml
 name: Verify
 
 on:
@@ -87,4 +85,3 @@ jobs:
           fi
 
           echo "npm ci, typecheck, and build succeeded"
-```

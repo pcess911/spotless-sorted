@@ -1,3 +1,5 @@
+
+```yaml
 name: Verify
 
 on:
@@ -23,22 +25,29 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: Run checks (npm ci, tsc, build)
+      - name: Install dependencies
         shell: bash
         run: |
-          #!/usr/bin/env bash
-          set -u
-          # Run commands and capture exit codes; do not exit on error so we can always upload logs
+          set +e
           npm ci 2>&1 | tee npm-install.log
-          echo ${PIPESTATUS[0]} > npm_exit
+          echo "${PIPESTATUS[0]}" > npm_exit
+          exit 0
 
+      - name: Type check
+        shell: bash
+        run: |
+          set +e
           npx tsc --noEmit 2>&1 | tee tsc.log
-          echo ${PIPESTATUS[0]} > tsc_exit
+          echo "${PIPESTATUS[0]}" > tsc_exit
+          exit 0
 
+      - name: Build app
+        shell: bash
+        run: |
+          set +e
           npm run build 2>&1 | tee build.log
-          echo ${PIPESTATUS[0]} > build_exit
-
-          echo "npm_exit=$(cat npm_exit) tsc_exit=$(cat tsc_exit) build_exit=$(cat build_exit)"
+          echo "${PIPESTATUS[0]}" > build_exit
+          exit 0
 
       - name: Upload logs
         if: always()
@@ -53,19 +62,29 @@ jobs:
             tsc_exit
             build_exit
 
-      - name: Fail if typecheck or build failed
+      - name: Fail if checks failed
         if: always()
         shell: bash
         run: |
+          npm_code=$(cat npm_exit)
           tsc_code=$(cat tsc_exit)
           build_code=$(cat build_exit)
-          echo "tsc_exit=${tsc_code} build_exit=${build_code}"
+          echo "npm_exit=${npm_code} tsc_exit=${tsc_code} build_exit=${build_code}"
+
+          if [ "${npm_code}" != "0" ]; then
+            echo "npm ci failed with exit code ${npm_code}"
+            exit ${npm_code}
+          fi
+
           if [ "${tsc_code}" != "0" ]; then
             echo "TypeScript typecheck failed with exit code ${tsc_code}"
             exit ${tsc_code}
           fi
+
           if [ "${build_code}" != "0" ]; then
             echo "Production build failed with exit code ${build_code}"
             exit ${build_code}
           fi
-          echo "Both typecheck and build succeeded"
+
+          echo "npm ci, typecheck, and build succeeded"
+```
